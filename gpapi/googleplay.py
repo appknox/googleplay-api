@@ -13,7 +13,6 @@ import requests
 import ssl
 
 from urllib3.poolmanager import PoolManager
-from urllib3.util import ssl_
 
 from . import googleplay_pb2, config, utils
 
@@ -57,7 +56,7 @@ class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
         Authentication.
         """
         context = SSLContext()
-        context.set_ciphers(ssl_.DEFAULT_CIPHERS)
+        context.set_ciphers(config.GOOGLE_ACCEPTED_CIPHERS)
         context.verify_mode = ssl.CERT_REQUIRED
         context.options &= ~0x4000
         self.poolmanager = PoolManager(*args, ssl_context=context, **kwargs)

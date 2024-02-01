@@ -21,8 +21,9 @@ pyinstaller==4.9
 pyinstaller-hooks-contrib==2020.9
 pytz==2020.1
 pywin32-ctypes==0.2.0
-requests==2.24.0
+requests==2.31.0
 rsa==4.6
 six==1.15.0
 uritemplate==3.0.1
 urllib3==1.25.10
+urllib3==2.2.0
