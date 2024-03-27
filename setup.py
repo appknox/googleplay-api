@@ -47,6 +47,7 @@ setup(name='ak-gpapi',
           ]},
       include_package_data=True,
       cmdclass={'build_py': ProtobufBuilder},
-      install_requires=['cryptography>=2.2',
-                        'protobuf>=3.5.2',
-                        'requests'])
+      install_requires=['cryptography<41',
+                        'protobuf==3.13.0',
+                        'requests==2.31.0',
+                        'urllib3 < 1.26.0'])

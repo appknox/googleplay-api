@@ -1,5 +1,5 @@
-certifi==2020.6.20
-cryptography==3.1.1
+certifi==2024.2.2
+cryptography==39.0.2
 protobuf==3.13.0
 requests==2.31.0
-urllib3==2.2.0
+urllib3==1.25.11
