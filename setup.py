@@ -30,6 +30,8 @@ class ProtobufBuilder(_build):
 setup(name='ak-gpapi',
       version=__VERSION__,
       description='Unofficial python api for google play',
+      long_description=open('README.md').read(),
+      long_description_content_type='text/markdown',
       url='https://github.com/appknox/googleplay-api',
       author='appknox',
       author_email='engineering@appknox.com',
