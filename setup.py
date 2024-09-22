@@ -10,7 +10,7 @@ PROTOC_EXEC = "protoc"
 
 CURRENT_DIR = os.path.abspath( os.path.dirname( __file__ ) )
 
-__VERSION__ = '3.0.3'
+__VERSION__ = '3.0.4'
 
 class ProtobufBuilder(_build):
 
@@ -48,6 +48,6 @@ setup(name='ak-gpapi',
       include_package_data=True,
       cmdclass={'build_py': ProtobufBuilder},
       install_requires=['cryptography<41',
-                        'protobuf==3.13.0',
+                        'protobuf==3.19.0',
                         'requests==2.31.0',
                         'urllib3 < 1.26.0'])

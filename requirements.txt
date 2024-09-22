@@ -1,5 +1,5 @@
 certifi==2024.2.2
 cryptography==39.0.2
-protobuf==3.13.0
+protobuf==3.19.0
 requests==2.31.0
 urllib3==1.25.11
