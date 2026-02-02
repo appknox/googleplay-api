@@ -293,80 +293,12 @@ class GooglePlayAPI(object):
     def login_with_aas_token(self, email, aas_token):
         """Login using an AAS token from oauth-android-app.
 
-        This method attempts the full authentication flow:
-        1. Uses the AAS token to get an AC2DM token
-        2. Performs device checkin to get a real GSF ID
-        3. Gets the authSubToken for Play Store API access
-        4. Uploads device configuration
-
-        Note: This may fail with 'MissingDroidguard' error if Google requires
-        device attestation. In that case, use login_with_aas_token_simple() instead.
-
-        Args:
-            email (str): Google account email
-            aas_token (str): AAS token from oauth-android-app (format: aas_et/...)
-        """
-        # Step 1: Get AC2DM token using AAS token
-        params = {
-            'Email': email,
-            'Token': aas_token,
-            'service': 'ac2dm',
-            'add_account': '1',
-            'get_accountid': '1',
-            'ACCESS_TOKEN': '1',
-            'callerPkg': 'com.google.android.gms',
-            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
-            'device_country': self.deviceBuilder.locale[0:2],
-            'lang': self.deviceBuilder.locale,
-            'sdk_version': self.deviceBuilder.device.get('build.version.sdk_int', '28'),
-            'google_play_services_version': self.deviceBuilder.device.get('gsf.version', '19629032'),
-        }
-
-        with requests.Session() as s:
-            s.mount('https://', AuthHTTPAdapter())
-            s.headers = {'User-Agent': 'GoogleAuth/1.4'}
-            response = s.post(AUTH_URL,
-                             data=params,
-                             verify=self.ssl_verify,
-                             proxies=self.proxies_config)
-
-        data = response.text.split()
-        result = {}
-        for d in data:
-            if "=" not in d:
-                continue
-            k, v = d.split("=", 1)
-            result[k.strip().lower()] = v.strip()
-
-        if "auth" not in result:
-            error = result.get("error", "Unknown error")
-            raise LoginError(f"Failed to get AC2DM token: {error}")
-
-        ac2dm_token = result["auth"]
-
-        # Step 2: Perform device checkin to get real GSF ID
-        self.gsfId = self.checkin(email, ac2dm_token)
-
-        # Step 3: Get authSubToken using AAS token
-        self._get_auth_sub_token_from_aas(email, aas_token)
-
-        # Step 4: Upload device configuration
-        self.uploadDeviceConfig()
-
-    def login_with_aas_token_simple(self, email, aas_token):
-        """Login using an AAS token with simplified flow (bypasses AC2DM).
-
-        This method bypasses the AC2DM token exchange which may require DroidGuard
-        attestation. It uses a direct approach:
+        This method uses a simplified authentication flow that bypasses the
+        AC2DM token exchange which may require DroidGuard attestation:
         1. Performs device checkin with AAS token to associate account
         2. Gets the authSubToken directly using AAS token
         3. Uploads device configuration
         4. Gets table of contents (dfeCookie)
-
-        Note: This simpler flow works when login_with_aas_token() fails with
-        'MissingDroidguard' error, but may have reduced functionality.
-
-        BUT this returns no versionCode or versionInfo
 
         Args:
             email (str): Google account email
@@ -374,16 +306,16 @@ class GooglePlayAPI(object):
         """
         # Step 1: Device checkin with account association using AAS token
         self.gsfId = self._checkin_with_aas(email, aas_token)
-        
+
         # Step 2: Get authSubToken directly using AAS token (skip AC2DM)
         self._get_auth_sub_token_from_aas(email, aas_token)
 
         # Step 3: Upload device configuration
         self.uploadDeviceConfig()
-        
+
         # Step 4: Get ToC to obtain dfeCookie (needed for full API access)
         self.toc()
-    
+
     def _checkin_with_aas(self, email, aas_token):
         """Perform device checkin and associate account using AAS token.
         
