@@ -293,11 +293,14 @@ class GooglePlayAPI(object):
     def login_with_aas_token(self, email, aas_token):
         """Login using an AAS token from oauth-android-app.
 
-        This method:
+        This method attempts the full authentication flow:
         1. Uses the AAS token to get an AC2DM token
         2. Performs device checkin to get a real GSF ID
         3. Gets the authSubToken for Play Store API access
         4. Uploads device configuration
+
+        Note: This may fail with 'MissingDroidguard' error if Google requires
+        device attestation. In that case, use login_with_aas_token_simple() instead.
 
         Args:
             email (str): Google account email
@@ -349,6 +352,71 @@ class GooglePlayAPI(object):
 
         # Step 4: Upload device configuration
         self.uploadDeviceConfig()
+
+    def login_with_aas_token_simple(self, email, aas_token):
+        """Login using an AAS token with simplified flow (bypasses AC2DM).
+
+        This method bypasses the AC2DM token exchange which may require DroidGuard
+        attestation. It uses a direct approach:
+        1. Performs device checkin with AAS token to associate account
+        2. Gets the authSubToken directly using AAS token
+        3. Uploads device configuration
+        4. Gets table of contents (dfeCookie)
+
+        Note: This simpler flow works when login_with_aas_token() fails with
+        'MissingDroidguard' error, but may have reduced functionality.
+
+        BUT this returns no versionCode or versionInfo
+
+        Args:
+            email (str): Google account email
+            aas_token (str): AAS token from oauth-android-app (format: aas_et/...)
+        """
+        # Step 1: Device checkin with account association using AAS token
+        self.gsfId = self._checkin_with_aas(email, aas_token)
+        
+        # Step 2: Get authSubToken directly using AAS token (skip AC2DM)
+        self._get_auth_sub_token_from_aas(email, aas_token)
+
+        # Step 3: Upload device configuration
+        self.uploadDeviceConfig()
+        
+        # Step 4: Get ToC to obtain dfeCookie (needed for full API access)
+        self.toc()
+    
+    def _checkin_with_aas(self, email, aas_token):
+        """Perform device checkin and associate account using AAS token.
+        
+        This does two checkins:
+        1. Initial checkin to get GSF ID and security token
+        2. Second checkin with account cookie to register the account
+        """
+        headers = self.getHeaders()
+        headers["Content-Type"] = CONTENT_TYPE_PROTO
+
+        # First checkin - get GSF ID and security token
+        request = self.deviceBuilder.getAndroidCheckinRequest()
+        stringRequest = request.SerializeToString()
+        res = self.session.post(CHECKIN_URL, data=stringRequest,
+                            headers=headers, verify=self.ssl_verify,
+                            proxies=self.proxies_config)
+        response = googleplay_pb2.AndroidCheckinResponse()
+        response.ParseFromString(res.content)
+        self.deviceCheckinConsistencyToken = response.deviceCheckinConsistencyToken
+
+        # Second checkin - associate account with device using AAS token
+        request.id = response.androidId
+        request.securityToken = response.securityToken
+        request.accountCookie.append("[" + email + "]")
+        request.accountCookie.append(aas_token)  # Use AAS token as account cookie
+        stringRequest = request.SerializeToString()
+        self.session.post(CHECKIN_URL,
+                      data=stringRequest,
+                      headers=headers,
+                      verify=self.ssl_verify,
+                      proxies=self.proxies_config)
+
+        return response.androidId
 
     def _get_auth_sub_token_from_aas(self, email, aas_token):
         """Get authSubToken using AAS token instead of password."""
