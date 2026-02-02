@@ -11,7 +11,10 @@ else:
     import configparser
 
 
-DFE_TARGETS = "CAEScFfqlIEG6gUYogFWrAISK1WDAg+hAZoCDgIU1gYEOIACFkLMAeQBnASLATlASUuyAyqCAjY5igOMBQzfA/IClwFbApUC4ANbtgKVAS7OAX8YswHFBhgDwAOPAmGEBt4OfKkB5weSB5AFASkiN68akgMaxAMSAQEBA9kBO7UBFE1KVwIDBGs3go6BBgEBAgMECQgJAQIEAQMEAQMBBQEBBAUEFQYCBgUEAwMBDwIBAgOrARwBEwMEAg0mrwESfTEcAQEKG4EBMxghChMBDwYGASI3hAEODEwXCVh/EREZA4sBYwEdFAgIIwkQcGQRDzQ2fTC2AjfVAQIBAYoBGRg2FhYFBwEqNzACJShzFFblAo0CFxpFNBzaAd0DHjIRI4sBJZcBPdwBCQGhAUd2A7kBLBVPngEECHl0UEUMtQETigHMAgUFCc0BBUUlTywdHDgBiAJ+vgKhAU0uAcYCAWQ/5ALUAw1UwQHUBpIBCdQDhgL4AY4CBQICjARbGFBGWzA1CAEMOQH+BRAOCAZywAIDyQZ2MgM3BxsoAgUEBwcHFia3AgcGTBwHBYwBAlcBggFxSGgIrAEEBw4QEqUCASsWadsHCgUCBQMD7QICA3tXCUw7ugJZAwGyAUwpIwM5AwkDBQMJA5sBCw8BNxBVVBwVKhebARkBAwsQEAgEAhESAgQJEBCZATMdzgEBBwG8AQQYKSMUkAEDAwY/CTs4/wEaAUt1AwEDAQUBAgIEAwYEDx1dB2wGeBFgTQ"
+# DFE_TARGETS from rs-google-play (EFF's Rust library) - this is critical for getting full app details
+DFE_TARGETS = "CAESN/qigQYC2AMBFfUbyA7SM5Ij/CvfBoIDgxHqGP8R3xzIBvoQtBKFDZ4HAY4FrwSVMasHBO0O2Q8akgYRAQECAQO7AQEpKZ0CnwECAwRrAQYBr9PPAoK7sQMBAQMCBAkIDAgBAwEDBAICBAUZEgMEBAMLAQEBBQEBAcYBARYED+cBfS8CHQEKkAEMMxcBIQoUDwYHIjd3DQ4MFk0JWGYZEREYAQOLAYEBFDMIEYMBAgICAgICOxkCD18LGQKEAcgDBIQBAgGLARkYCy8oBTJlBCUocxQn0QUBDkkGxgNZQq0BZSbeAmIDgAEBOgGtAaMCDAOQAZ4BBIEBKUtQUYYBQscDDxPSARA1oAEHAWmnAsMB2wFyywGLAxol+wImlwOOA80CtwN26A0WjwJVbQEJPAH+BRDeAfkHK/ABASEBCSAaHQemAzkaRiu2Ad8BdXeiAwEBGBUBBN4LEIABK4gB2AFLfwECAdoENq0CkQGMBsIBiQEtiwGgA1zyAUQ4uwS8AwhsvgPyAcEDF27vApsBHaICGhl3GSKxAR8MC6cBAgItmQYG9QIeywLvAeYBDArLAh8HASI4ELICDVmVBgsY/gHWARtcAsMBpALiAdsBA7QBpAJmIArpByn0AyAKBwHTARIHAX8D+AMBcRIBBbEDmwUBMacCHAciNp0BAQF0OgQLJDuSAh54kwFSP0eeAQQ4M5EBQgMEmwFXywFo0gFyWwMcapQBBugBPUW2AVgBKmy3AR6PAbMBGQxrUJECvQR+8gFoWDsYgQNwRSczBRXQAgtRswEW0ALMAREYAUEBIG6yATYCRE8OxgER8gMBvQEDRkwLc8MBTwHZAUOnAXiiBakDIbYBNNcCIUmuArIBSakBrgFHKs0EgwV/G3AD0wE6LgECtQJ4xQFwFbUCjQPkBS6vAQqEAUZF3QIM9wEhCoYCQhXsBCyZArQDugIziALWAdIBlQHwBdUErQE6qQaSA4EEIvYBHir9AQVLmgMCApsCKAwHuwgrENsBAjNYswEVmgIt7QJnN4wDEnta+wGfAcUBxgEtEFXQAQWdAUAeBcwBAQM7rAEJATJ0LENrdh73A6UBhAE+qwEeASxLZUMhDREuH0CGARbd7K0GlQo"
+# DFE Phenotype - device fingerprint for Play Store client (from rs-google-play)
+DFE_PHENOTYPE = "H4sIAAAAAAAAAB3OO3KjMAAA0KRNuWXukBkBQkAJ2MhgAZb5u2GCwQZbCH_EJ77QHmgvtDtbv-Z9_H63zXXU0NVPB1odlyGy7751Q3CitlPDvFd8lxhz3tpNmz7P92CFw73zdHU2Ie0Ad2kmR8lxhiErTFLt3RPGfJQHSDy7Clw10bg8kqf2owLokN4SecJTLoSwBnzQSd652_MOf2d1vKBNVedzg4ciPoLz2mQ8efGAgYeLou-l-PXn_7Sna1MfhHuySxt-4esulEDp8Sbq54CPPKjpANW-lkU2IZ0F92LBI-ukCKSptqeq1eXU96LD9nZfhKHdtjSWwJqUm_2r6pMHOxk01saVanmNopjX3YxQafC4iC6T55aRbC8nTI98AF_kItIQAJb5EQxnKTO7TZDWnr01HVPxelb9A2OWX6poidMWl16K54kcu_jhXw-JSBQkVcD_fPsLSZu6joIBAAA"
 GOOGLE_PUBKEY = "AAAAgMom/1a/v0lblO2Ubrt60J2gcuXSljGFQXgcyZWveWLEwo6prwgi3iJIZdodyhKZQrNWp5nKJ3srRXcUW+F1BD3baEVGcmEgqaLZUNBjm057pKRI16kB0YppeGx5qIQ5QjKzsR8ETQbKLNWgRY0QRNVz34kMJR3P/LgHax/6rmf5AAAAAwEAAQ=="
 ACCOUNT = "HOSTED_OR_GOOGLE"
 GOOGLE_ACCEPTED_CIPHERS = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE+AESGCM:ECDHE+CHACHA20:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM8:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM8:ECDHE-ECDSA-AES128-CCM:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE+CHACHA20:ECDH+AESGCM:DH+AESGCM:ECDH+AES:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!eNULL:!MD5:!DSS"
@@ -77,12 +80,16 @@ class DeviceBuilder(object):
     def getBaseHeaders(self):
         return {"Accept-Language": self.locale.replace('_', '-'),
                 "X-DFE-Encoded-Targets": DFE_TARGETS,
+                "X-DFE-Phenotype": DFE_PHENOTYPE,
                 "User-Agent": self.getUserAgent(),
                 "X-DFE-Client-Id": "am-android-google",
                 "X-DFE-MCCMNC": self.device.get('celloperator'),
                 "X-DFE-Network-Type": "4",
                 "X-DFE-Content-Filters": "",
-                "X-DFE-Request-Params": "timeoutMs=4000"}
+                "X-DFE-Request-Params": "timeoutMs=4000",
+                "X-Limit-Ad-Tracking-Enabled": "false",
+                "X-Ad-Id": "",
+                "X-DFE-UserLanguages": self.locale}
 
     def getDeviceUploadHeaders(self):
         headers = self.getBaseHeaders()
@@ -176,6 +183,14 @@ class DeviceBuilder(object):
         deviceConfig.screenWidth = int(self.device['screen.width'])
         deviceConfig.screenHeight = int(self.device['screen.height'])
         deviceConfig.glEsVersion = int(self.device['gl.version'])
+
+        # Additional fields from rs-google-play (critical for full API access)
+        deviceConfig.smallestScreenWidthDP = int(self.device.get('smallestscreenwidthdp', '320'))
+        deviceConfig.lowRamDevice = int(self.device.get('lowramdevice', '0'))
+        deviceConfig.totalMemoryBytes = int(self.device.get('totalmemory', '8354971648'))
+        deviceConfig.maxNumOfCPUCores = int(self.device.get('maxnumofcpucores', '8'))
+        deviceConfig.maxApkDownloadSizeMb = int(self.device.get('maxapkdownloadsizemb', '2048'))
+
         for x in platforms:
             deviceConfig.nativePlatform.append(x)
         for x in libList:
@@ -186,6 +201,14 @@ class DeviceBuilder(object):
             deviceConfig.systemSupportedLocale.append(x)
         for x in glList:
             deviceConfig.glExtension.append(x)
+
+        # Add deviceFeature array (critical - Rust sets this, Python was missing it)
+        for x in featureList:
+            deviceFeature = googleplay_pb2.DeviceFeature()
+            deviceFeature.name = x
+            deviceFeature.value = 0
+            deviceConfig.deviceFeature.append(deviceFeature)
+
         return deviceConfig
 
     def getAndroidBuild(self):
@@ -202,7 +225,7 @@ class DeviceBuilder(object):
         androidBuild.buildProduct = self.device['build.product']
         androidBuild.client = self.device['client']
         androidBuild.otaInstalled = False
-        androidBuild.timestamp = int(time()/1000)
+        # Note: Rust does NOT set timestamp - leaving it unset like Rust does
         androidBuild.googleServices = int(self.device['gsf.version'])
         return androidBuild
 

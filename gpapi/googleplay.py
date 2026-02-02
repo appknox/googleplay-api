@@ -168,7 +168,11 @@ class GooglePlayAPI(object):
         if self.gsfId is not None:
             headers["X-DFE-Device-Id"] = "{0:x}".format(self.gsfId)
         if self.authSubToken is not None:
-            headers["Authorization"] = "GoogleLogin auth=%s" % self.authSubToken
+            # Use Bearer format for OAuth2 tokens (ya29.*), GoogleLogin for legacy tokens
+            if self.authSubToken.startswith('ya29.'):
+                headers["Authorization"] = "Bearer %s" % self.authSubToken
+            else:
+                headers["Authorization"] = "GoogleLogin auth=%s" % self.authSubToken
         if self.device_config_token is not None:
             headers["X-DFE-Device-Config-Token"] = self.device_config_token
         if self.deviceCheckinConsistencyToken is not None:
@@ -212,6 +216,7 @@ class GooglePlayAPI(object):
         upload = googleplay_pb2.UploadDeviceConfigRequest()
         upload.deviceConfiguration.CopyFrom(self.deviceBuilder.getDeviceConfig())
         headers = self.getHeaders(upload_fields=True)
+        headers["Content-Type"] = CONTENT_TYPE_PROTO  # Required for protobuf (matches Rust)
         stringRequest = upload.SerializeToString()
         response = self.session.post(UPLOAD_URL, data=stringRequest,
                                  headers=headers,
@@ -291,79 +296,77 @@ class GooglePlayAPI(object):
             raise LoginError('Either (email,pass) or (gsfId, authSubToken) is needed')
 
     def login_with_aas_token(self, email, aas_token):
-        """Login using an AAS token from oauth-android-app.
+        """Login using an AAS token (Android Account Service token).
 
-        This method uses a simplified authentication flow that bypasses the
-        AC2DM token exchange which may require DroidGuard attestation:
-        1. Performs device checkin with AAS token to associate account
-        2. Gets the authSubToken directly using AAS token
-        3. Uploads device configuration
-        4. Gets table of contents (dfeCookie)
+        This method follows the same authentication flow as rs-google-play:
+        1. Device checkin (device info only, no account association)
+        2. Upload device configuration
+        3. Get OAuth2 token using googleplay service
+        4. Get table of contents (dfeCookie)
 
         Args:
             email (str): Google account email
-            aas_token (str): AAS token from oauth-android-app (format: aas_et/...)
+            aas_token (str): AAS token (format: aas_et/...)
+
+        Returns:
+            tuple: (gsfId, authSubToken) for reuse
         """
-        # Step 1: Device checkin with account association using AAS token
-        self.gsfId = self._checkin_with_aas(email, aas_token)
+        # Step 1: Device checkin WITHOUT account association (like Rust)
+        self.gsfId = self._checkin_device_only()
 
-        # Step 2: Get authSubToken directly using AAS token (skip AC2DM)
-        self._get_auth_sub_token_from_aas(email, aas_token)
-
-        # Step 3: Upload device configuration
+        # Step 2: Upload device configuration
         self.uploadDeviceConfig()
 
-        # Step 4: Get ToC to obtain dfeCookie (needed for full API access)
+        # Step 3: Get auth token using oauth2 googleplay service (like Rust)
+        self._get_auth_token_oauth2(email, aas_token)
+
+        # Step 4: Get ToC to obtain dfeCookie
         self.toc()
 
-    def _checkin_with_aas(self, email, aas_token):
-        """Perform device checkin and associate account using AAS token.
-        
-        This does two checkins:
-        1. Initial checkin to get GSF ID and security token
-        2. Second checkin with account cookie to register the account
-        """
-        headers = self.getHeaders()
-        headers["Content-Type"] = CONTENT_TYPE_PROTO
+        return self.gsfId, self.authSubToken
 
-        # First checkin - get GSF ID and security token
+    def _checkin_device_only(self):
+        """Perform device checkin without account association."""
+        # Rust sends minimal headers for checkin - NOT the full X-DFE-* headers
+        headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
+        headers["Content-Type"] = CONTENT_TYPE_PROTO
+        headers["Host"] = "android.clients.google.com"
+
         request = self.deviceBuilder.getAndroidCheckinRequest()
         stringRequest = request.SerializeToString()
+
         res = self.session.post(CHECKIN_URL, data=stringRequest,
                             headers=headers, verify=self.ssl_verify,
                             proxies=self.proxies_config)
         response = googleplay_pb2.AndroidCheckinResponse()
         response.ParseFromString(res.content)
+
         self.deviceCheckinConsistencyToken = response.deviceCheckinConsistencyToken
-
-        # Second checkin - associate account with device using AAS token
-        request.id = response.androidId
-        request.securityToken = response.securityToken
-        request.accountCookie.append("[" + email + "]")
-        request.accountCookie.append(aas_token)  # Use AAS token as account cookie
-        stringRequest = request.SerializeToString()
-        self.session.post(CHECKIN_URL,
-                      data=stringRequest,
-                      headers=headers,
-                      verify=self.ssl_verify,
-                      proxies=self.proxies_config)
-
         return response.androidId
 
-    def _get_auth_sub_token_from_aas(self, email, aas_token):
-        """Get authSubToken using AAS token instead of password."""
+    def _get_auth_token_oauth2(self, email, aas_token):
+        """Get auth token using oauth2 googleplay service (matches Rust flow).
+
+        Uses service 'oauth2:https://www.googleapis.com/auth/googleplay' instead
+        of 'androidmarket' which is what makes the Rust library work.
+        """
+        # Use exact same params as Rust library
         params = {
             'Email': email,
             'Token': aas_token,
-            'service': 'androidmarket',
+            'service': 'oauth2:https://www.googleapis.com/auth/googleplay',
             'app': 'com.android.vending',
-            'callerPkg': 'com.android.vending',
+            'callerPkg': 'com.google.android.gms',  # Rust uses DEFAULT_ANDROID_VENDING
             'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
             'client_sig': '38918a453d07199354f8b19af05ec6562ced5788',
-            'device_country': self.deviceBuilder.locale[0:2],
-            'lang': self.deviceBuilder.locale,
+            'device_country': 'us',  # Rust uses DEFAULT_COUNTRY_CODE.to_ascii_lowercase()
+            'lang': 'en',  # Rust uses DEFAULT_LANGUAGE.to_ascii_lowercase()
             'sdk_version': self.deviceBuilder.device.get('build.version.sdk_int', '28'),
             'google_play_services_version': self.deviceBuilder.device.get('gsf.version', '19629032'),
+            'oauth2_foreground': '1',
+            'token_request_options': 'CAA4AVAB',
+            'check_email': '1',
+            'system_partition': '1',
         }
 
         if self.gsfId is not None:
@@ -388,54 +391,10 @@ class GooglePlayAPI(object):
 
         if "auth" in result:
             self.setAuthSubToken(result["auth"])
-        elif "token" in result:
-            # Need second round token exchange
-            second_round = self._get_second_round_from_aas(result["token"], email, aas_token)
-            self.setAuthSubToken(second_round)
         else:
             error = result.get("error", "Unknown error")
-            raise LoginError(f"Failed to get authSubToken: {error}")
-
-    def _get_second_round_from_aas(self, first_token, email, aas_token):
-        """Get second round token using first token and AAS token."""
-        params = {
-            'Token': first_token,
-            'service': 'androidmarket',
-            'app': 'com.android.vending',
-            'check_email': '1',
-            'token_request_options': 'CAA4AQ==',
-            'system_partition': '1',
-            '_opt_is_called_from_account_manager': '1',
-            'callerPkg': 'com.android.vending',
-            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
-        }
-
-        if self.gsfId is not None:
-            params['androidId'] = "{0:x}".format(self.gsfId)
-
-        headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
-        headers['app'] = 'com.android.vending'
-
-        response = self.session.post(AUTH_URL,
-                                     data=params,
-                                     headers=headers,
-                                     verify=self.ssl_verify,
-                                     proxies=self.proxies_config)
-
-        data = response.text.split()
-        result = {}
-        for d in data:
-            if "=" not in d:
-                continue
-            k, v = d.split("=", 1)
-            result[k.strip().lower()] = v.strip()
-
-        if "auth" in result:
-            return result["auth"]
-        else:
-            error = result.get("error", "Unknown error")
-            raise LoginError(f"Failed to get second round token: {error}")
-
+            raise LoginError(f"Failed to get auth token (oauth2): {error}\nFull response: {response.text[:500]}")
+    
     def getAuthSubToken(self, email, passwd):
         requestParams = self.deviceBuilder.getLoginParams(email, passwd)
         requestParams['service'] = 'androidmarket'
@@ -498,9 +457,10 @@ class GooglePlayAPI(object):
         if self.authSubToken is None:
             raise LoginError("You need to login before executing any request")
         headers = self.getHeaders()
-        headers["Content-Type"] = content_type
 
         if post_data is not None:
+            # Only set Content-Type for POST requests (matches Rust behavior)
+            headers["Content-Type"] = content_type
             response = self.session.post(path,
                                      data=str(post_data),
                                      headers=headers,
@@ -509,6 +469,7 @@ class GooglePlayAPI(object):
                                      timeout=60,
                                      proxies=self.proxies_config)
         else:
+            # GET requests don't need Content-Type (matches Rust behavior)
             response = self.session.get(path,
                                     headers=headers,
                                     params=params,
