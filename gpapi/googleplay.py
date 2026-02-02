@@ -290,6 +290,152 @@ class GooglePlayAPI(object):
         else:
             raise LoginError('Either (email,pass) or (gsfId, authSubToken) is needed')
 
+    def login_with_aas_token(self, email, aas_token):
+        """Login using an AAS token from oauth-android-app.
+
+        This method:
+        1. Uses the AAS token to get an AC2DM token
+        2. Performs device checkin to get a real GSF ID
+        3. Gets the authSubToken for Play Store API access
+        4. Uploads device configuration
+
+        Args:
+            email (str): Google account email
+            aas_token (str): AAS token from oauth-android-app (format: aas_et/...)
+        """
+        # Step 1: Get AC2DM token using AAS token
+        params = {
+            'Email': email,
+            'Token': aas_token,
+            'service': 'ac2dm',
+            'add_account': '1',
+            'get_accountid': '1',
+            'ACCESS_TOKEN': '1',
+            'callerPkg': 'com.google.android.gms',
+            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
+            'device_country': self.deviceBuilder.locale[0:2],
+            'lang': self.deviceBuilder.locale,
+            'sdk_version': self.deviceBuilder.device.get('build.version.sdk_int', '28'),
+            'google_play_services_version': self.deviceBuilder.device.get('gsf.version', '19629032'),
+        }
+
+        with requests.Session() as s:
+            s.mount('https://', AuthHTTPAdapter())
+            s.headers = {'User-Agent': 'GoogleAuth/1.4'}
+            response = s.post(AUTH_URL,
+                             data=params,
+                             verify=self.ssl_verify,
+                             proxies=self.proxies_config)
+
+        data = response.text.split()
+        result = {}
+        for d in data:
+            if "=" not in d:
+                continue
+            k, v = d.split("=", 1)
+            result[k.strip().lower()] = v.strip()
+
+        if "auth" not in result:
+            error = result.get("error", "Unknown error")
+            raise LoginError(f"Failed to get AC2DM token: {error}")
+
+        ac2dm_token = result["auth"]
+
+        # Step 2: Perform device checkin to get real GSF ID
+        self.gsfId = self.checkin(email, ac2dm_token)
+
+        # Step 3: Get authSubToken using AAS token
+        self._get_auth_sub_token_from_aas(email, aas_token)
+
+        # Step 4: Upload device configuration
+        self.uploadDeviceConfig()
+
+    def _get_auth_sub_token_from_aas(self, email, aas_token):
+        """Get authSubToken using AAS token instead of password."""
+        params = {
+            'Email': email,
+            'Token': aas_token,
+            'service': 'androidmarket',
+            'app': 'com.android.vending',
+            'callerPkg': 'com.android.vending',
+            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
+            'client_sig': '38918a453d07199354f8b19af05ec6562ced5788',
+            'device_country': self.deviceBuilder.locale[0:2],
+            'lang': self.deviceBuilder.locale,
+            'sdk_version': self.deviceBuilder.device.get('build.version.sdk_int', '28'),
+            'google_play_services_version': self.deviceBuilder.device.get('gsf.version', '19629032'),
+        }
+
+        if self.gsfId is not None:
+            params['androidId'] = "{0:x}".format(self.gsfId)
+
+        headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
+        headers['app'] = 'com.android.vending'
+
+        response = self.session.post(AUTH_URL,
+                                     data=params,
+                                     headers=headers,
+                                     verify=self.ssl_verify,
+                                     proxies=self.proxies_config)
+
+        data = response.text.split()
+        result = {}
+        for d in data:
+            if "=" not in d:
+                continue
+            k, v = d.split("=", 1)
+            result[k.strip().lower()] = v.strip()
+
+        if "auth" in result:
+            self.setAuthSubToken(result["auth"])
+        elif "token" in result:
+            # Need second round token exchange
+            second_round = self._get_second_round_from_aas(result["token"], email, aas_token)
+            self.setAuthSubToken(second_round)
+        else:
+            error = result.get("error", "Unknown error")
+            raise LoginError(f"Failed to get authSubToken: {error}")
+
+    def _get_second_round_from_aas(self, first_token, email, aas_token):
+        """Get second round token using first token and AAS token."""
+        params = {
+            'Token': first_token,
+            'service': 'androidmarket',
+            'app': 'com.android.vending',
+            'check_email': '1',
+            'token_request_options': 'CAA4AQ==',
+            'system_partition': '1',
+            '_opt_is_called_from_account_manager': '1',
+            'callerPkg': 'com.android.vending',
+            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
+        }
+
+        if self.gsfId is not None:
+            params['androidId'] = "{0:x}".format(self.gsfId)
+
+        headers = self.deviceBuilder.getAuthHeaders(self.gsfId)
+        headers['app'] = 'com.android.vending'
+
+        response = self.session.post(AUTH_URL,
+                                     data=params,
+                                     headers=headers,
+                                     verify=self.ssl_verify,
+                                     proxies=self.proxies_config)
+
+        data = response.text.split()
+        result = {}
+        for d in data:
+            if "=" not in d:
+                continue
+            k, v = d.split("=", 1)
+            result[k.strip().lower()] = v.strip()
+
+        if "auth" in result:
+            return result["auth"]
+        else:
+            error = result.get("error", "Unknown error")
+            raise LoginError(f"Failed to get second round token: {error}")
+
     def getAuthSubToken(self, email, passwd):
         requestParams = self.deviceBuilder.getLoginParams(email, passwd)
         requestParams['service'] = 'androidmarket'
