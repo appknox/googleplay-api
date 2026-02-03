@@ -37,7 +37,7 @@ message AndroidAppPatchData {
 }
 message AppFileMetadata {
   optional int32 fileType = 1;
-  optional int32 versionCode = 2;
+  optional int64 versionCode = 2;
   optional int64 size = 3;
   optional string downloadUrl = 4;
   optional int64 sizeGzipped = 6;
@@ -464,6 +464,11 @@ message Feature {
   optional string label = 1;
   optional string value = 3;
 }
+message DeviceFeature {
+  optional string name = 1;
+  optional int32 value = 2;
+}
+
 message DeviceConfigurationProto {
   optional int32 touchScreen = 1;
   optional int32 keyboard = 2;
@@ -482,6 +487,11 @@ message DeviceConfigurationProto {
   repeated string glExtension = 15;
   optional int32 deviceClass = 16;
   optional int32 maxApkDownloadSizeMb = 17;
+  optional int32 smallestScreenWidthDP = 18;
+  optional int32 lowRamDevice = 19;
+  optional int64 totalMemoryBytes = 20;
+  optional int32 maxNumOfCPUCores = 21;
+  repeated DeviceFeature deviceFeature = 26;
 }
 message Document {
   optional Docid docid = 1;
@@ -558,7 +568,7 @@ message AlbumDetails {
 message AppDetails {
   optional string developerName = 1;
   optional int32 majorVersionNumber = 2;
-  optional int32 versionCode = 3;
+  optional int64 versionCode = 3;
   optional string versionString = 4;
   optional string title = 5;
   repeated string appCategory = 7;
@@ -658,7 +668,7 @@ message Dependency {
 }
 message LibraryDependency {
   optional string packageName = 1;
-  optional int32 versionCode = 2;
+  optional int64 versionCode = 2;
 }
 message TestingProgramInfo {
   optional bool subscribed = 2;
@@ -695,7 +705,7 @@ message DocumentDetails {
 }
 message FileMetadata {
   optional int32 fileType = 1;
-  optional int32 versionCode = 2;
+  optional int64 versionCode = 2;
   optional int64 size = 3;
   optional string splitId = 4;
   optional int64 compressedSize = 5;
@@ -987,7 +997,7 @@ message LibraryUpdate {
 }
 
 message AndroidAppNotificationData {
-  optional int32 versionCode = 1;
+  optional int64 versionCode = 1;
   optional string assetId = 2;
 }
 message InAppNotificationData {
@@ -1401,7 +1411,7 @@ message KeyToPackageNameMapping {
 }
 message PackageInfo {
   optional string pkgName = 1;
-  optional int32 versionCode = 2;
+  optional int64 versionCode = 2;
 }
 message PayloadLevelAppStat {
   optional int32 packageKey = 1;
