@@ -316,6 +316,75 @@ class GooglePlayAPI(object):
         # Step 4: Get ToC to obtain dfeCookie (needed for full API access)
         self.toc()
 
+        return self.gsfId, self.authSubToken
+
+    def get_aas_token(self, email, oauth_token):
+        # BETA - COULD BREAK IN THE FUTURE
+        """Exchange a one-time OAuth token for a long-lived AAS token.
+
+        The OAuth token must be obtained manually from the browser:
+        1. Visit: https://accounts.google.com/EmbeddedSetup/identifier?flowName=EmbeddedSetupAndroid
+        2. Open browser DevTools (F12) → Applications tab
+        3. Login to your Google account
+        4. Find the 'oauth_token' Storage/Cookies (starts with 'oauth2_4/')
+
+        Args:
+            email (str): Google account email
+            oauth_token (str): One-time OAuth token from browser (format: oauth2_4/...)
+
+        Returns:
+            str: Long-lived AAS token (format: aas_et/...) that can be reused
+
+        Raises:
+            Exception: If token exchange fails
+        """
+        params = {
+            'lang': 'en',
+            'google_play_services_version': self.deviceBuilder.device.get('gsf.version', '19629032'),
+            'sdk_version': self.deviceBuilder.device.get('build.version.sdk_int', '28'),
+            'device_country': 'us',
+            'Email': email,
+            'service': 'ac2dm',
+            'get_accountid': '1',
+            'ACCESS_TOKEN': '1',
+            'callerPkg': 'com.google.android.gms',
+            'add_account': '1',
+            'Token': oauth_token,
+            'callerSig': '38918a453d07199354f8b19af05ec6562ced5788',
+            'droidguard_results': 'dummy123',  # Placeholder for DroidGuard attestation
+            'client_sig': '38918a453d07199354f8b19af05ec6562ced5788',
+            'has_permission': '1',
+            'source': 'android',
+            'app': 'com.android.vending',
+        }
+
+        headers = {
+            'User-Agent': '',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'app': 'com.google.android.gms',
+        }
+
+        response = self.session.post(
+            AUTH_URL,
+            data=params,
+            headers=headers,
+            verify=self.ssl_verify
+        )
+
+        # Parse response (key=value format, one per line)
+        result = {}
+        for line in response.text.split('\n'):
+            if '=' in line:
+                key, value = line.split('=', 1)
+                result[key.lower()] = value
+
+        if 'token' in result:
+            return result['token']  # This is the aas_et/... token
+        elif 'error' in result:
+            raise Exception(f"Failed to get AAS token: {result.get('error')} - {result.get('errormsg', 'Unknown error')}")
+        else:
+            raise Exception(f"Failed to get AAS token. Response: {response.text[:200]}")
+
     def _checkin_with_aas(self, email, aas_token):
         """Perform device checkin and associate account using AAS token.
         
