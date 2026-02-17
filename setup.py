@@ -10,7 +10,7 @@ PROTOC_EXEC = "protoc"
 
 CURRENT_DIR = os.path.abspath( os.path.dirname( __file__ ) )
 
-__VERSION__ = '3.0.8'
+__VERSION__ = '3.0.9'
 
 class ProtobufBuilder(_build):
 
