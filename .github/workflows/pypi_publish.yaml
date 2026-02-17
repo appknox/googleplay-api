@@ -21,9 +21,9 @@ jobs:
         cache: pip
     - name: Install Protoc
       run: |
-        PROTOC_ZIP=protoc-3.13.0-linux-x86_64.zip && \
-        curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/$PROTOC_ZIP && \
-        unzip -q $PROTOC_ZIP bin/protoc -d /usr/local && 
+        PROTOC_ZIP=protoc-29.2-linux-x86_64.zip && \
+        curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v29.2/$PROTOC_ZIP && \
+        unzip -q $PROTOC_ZIP bin/protoc -d /usr/local && \
         protoc --version
     - name: Install dependencies
       run: |
